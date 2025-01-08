@@ -137,7 +137,7 @@ class ModelViewer(
         LightManager.Builder(LightManager.Type.DIRECTIONAL)
                 .color(r, g, b)
                 .intensity(100_000.0f)
-                .direction(0.0f, -1.0f, 0.0f)
+                .direction(0.7071f, -0.7071f, -0.7071f)
                 .castShadows(true)
                 .build(engine, light)
 
@@ -419,6 +419,6 @@ class ModelViewer(
     }
 
     companion object {
-        private val kDefaultObjectPosition = Float3(0.0f, 0.0f, -4.0f)
+        private val kDefaultObjectPosition = Float3(0f, 0f, -2f)
     }
 }
