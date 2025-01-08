@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:gravity="center|center_horizontal|center_vertical"
-        android:text="https://google.github.io/filament/remote"
+        android:text="Google filament"
         android:textIsSelectable="true"
         android:textSize="18sp"
         android:textStyle="bold" />
