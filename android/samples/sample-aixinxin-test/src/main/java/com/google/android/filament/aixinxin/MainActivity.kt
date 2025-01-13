@@ -22,27 +22,14 @@ import android.os.Bundle
 import android.util.Log
 import android.view.*
 import android.view.GestureDetector
-import android.widget.TextView
+import android.widget.Button
 import android.widget.Toast
-import com.google.android.filament.Fence
-import com.google.android.filament.IndirectLight
-import com.google.android.filament.Material
-import com.google.android.filament.Skybox
 import com.google.android.filament.View
-import com.google.android.filament.View.OnPickCallback
 import com.google.android.filament.utils.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileInputStream
-import java.io.RandomAccessFile
-import java.net.URI
-import java.nio.Buffer
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
-import java.util.zip.ZipInputStream
+import kotlinx.serialization.*
+import kotlinx.serialization.json.Json
 
 class MainActivity : Activity() {
 
@@ -56,6 +43,7 @@ class MainActivity : Activity() {
     private lateinit var choreographer: Choreographer
     private val frameScheduler = FrameCallback()
     private lateinit var modelViewer: ModelViewer
+    private lateinit var faceDriver: FaceDriver
     private val doubleTapListener = DoubleTapListener()
     private val singleTapListener = SingleTapListener()
     private lateinit var doubleTapDetector: GestureDetector
@@ -71,6 +59,17 @@ class MainActivity : Activity() {
         setContentView(R.layout.simple_layout)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        findViewById<Button>(R.id.speak_button).setOnClickListener {
+            val driveDataJson = assets.open("drive_data.json").use { input ->
+                val bytes = ByteArray(input.available())
+                input.read(bytes)
+                String(bytes, StandardCharsets.UTF_8)
+            }
+
+            val driveData = Json.decodeFromString(AiPaasDataPackage.serializer(), driveDataJson)
+            faceDriver.startDrive(driveData.speech_rep_info.anim_rep.alg_info.anim_coef_list)
+        }
+
         surfaceView = findViewById(R.id.main_sv)
         choreographer = Choreographer.getInstance()
 
@@ -78,6 +77,7 @@ class MainActivity : Activity() {
         singleTapDetector = GestureDetector(applicationContext, singleTapListener)
 
         modelViewer = ModelViewer(surfaceView)
+        faceDriver = FaceDriver(modelViewer)
         viewerContent.view = modelViewer.view
         viewerContent.sunlight = modelViewer.light
         viewerContent.lightManager = modelViewer.engine.lightManager
@@ -133,31 +133,25 @@ class MainActivity : Activity() {
     }
 
     private fun createDefaultRenderables() {
-//        val assetsPathBase = "models/allLowidle"
-        val assetsPathBase = "models/allLowStand01RB001"
-//        val assetsPathBase = "models/merged"
-//        val assetsPath = "${assetsPathBase}/AiXinXin_Rig_all_low.gltf"
-        val assetsPath = "${assetsPathBase}/AiXinXin_Rig_all_low_Stand01RB001.gltf"
-//        val assetsPath = "${assetsPathBase}/merged.gltf"
+        val assetsPathBase = "models/headLow2+idle"
+//        val assetsPathBase = "models/bodyV03BlenderIdleTexScale"
+//        val assetsPathBase = "models/allLowV03BlenderIdleTexV03"
+        val assetsPath = "${assetsPathBase}/AiXinXin_Rig_head_low_v02.gltf"
+//        val assetsPath = "${assetsPathBase}/bodyLowV03.gltf"
+//        val assetsPath = "${assetsPathBase}/allLowV03.gltf"
         val buffer = assets.open(assetsPath).use { input ->
             val bytes = ByteArray(input.available())
             input.read(bytes)
             ByteBuffer.wrap(bytes)
         }
 
-        modelViewer.loadModelGltfAsync(buffer) { uri -> readCompressedAsset("${assetsPathBase}/$uri") }
-        updateRootTransform()
-
-        if (assetsPathBase.contains("merged")){
-            val tm = modelViewer.engine.transformManager
-            var center = Float3(-0.0022023767f, 0.901152f, 0.035443634f )
-            val halfExtent = Float3(0.23230186f, 0.78089356f, 0.17928179f)
-            val maxExtent = 2.0f * max(halfExtent)
-            val scaleFactor = 2.0f / maxExtent
-            center -= Float3(0.0f, -0f, -2f) / scaleFactor
-            val transform = scale(Float3(scaleFactor)) * translation(-center)
-            tm.setTransform(tm.getInstance(modelViewer.asset!!.root), transpose(transform).toFloatArray())
+        if (assetsPath.endsWith(".gltf")) {
+            modelViewer.loadModelGltfAsync(buffer) { uri -> readCompressedAsset("${assetsPathBase}/$uri") }
+        } else {
+            modelViewer.loadModelGlb(buffer)
         }
+
+        updateRootTransform()
     }
 
     private fun createIndirectLight() {
@@ -242,6 +236,7 @@ class MainActivity : Activity() {
             }
 
             modelViewer.render(frameTimeNanos)
+            faceDriver.doFrame(frameTimeNanos)
         }
     }
 

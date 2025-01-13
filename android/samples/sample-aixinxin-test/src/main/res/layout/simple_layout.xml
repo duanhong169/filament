@@ -5,15 +5,16 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/user_hint"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:gravity="center|center_horizontal|center_vertical"
-        android:text="Google filament"
-        android:textIsSelectable="true"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/speak_button"
+            android:layout_width="114dp"
+            android:layout_height="match_parent"
+            android:text="Speak" />
+    </LinearLayout>
 
     <SurfaceView
         android:id="@+id/main_sv"
