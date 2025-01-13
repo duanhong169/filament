@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:OptIn(DelicateCoroutinesApi::class)
+
 package com.google.android.filament.aixinxin
 
 import android.annotation.SuppressLint
@@ -26,10 +28,17 @@ import android.widget.Button
 import android.widget.Toast
 import com.google.android.filament.View
 import com.google.android.filament.utils.*
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
-import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
+import android.media.AudioFormat
+import android.media.AudioManager
+import android.media.AudioTrack
 
 class MainActivity : Activity() {
 
@@ -44,6 +53,7 @@ class MainActivity : Activity() {
     private val frameScheduler = FrameCallback()
     private lateinit var modelViewer: ModelViewer
     private lateinit var faceDriver: FaceDriver
+    private var audioTrack: AudioTrack? = null
     private val doubleTapListener = DoubleTapListener()
     private val singleTapListener = SingleTapListener()
     private lateinit var doubleTapDetector: GestureDetector
@@ -60,14 +70,36 @@ class MainActivity : Activity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         findViewById<Button>(R.id.speak_button).setOnClickListener {
-            val driveDataJson = assets.open("drive_data.json").use { input ->
-                val bytes = ByteArray(input.available())
-                input.read(bytes)
-                String(bytes, StandardCharsets.UTF_8)
-            }
+            GlobalScope.launch(Dispatchers.IO) {
+                val driveDataJson = assets.open("drive_data.json").use { input ->
+                    val bytes = ByteArray(input.available())
+                    input.read(bytes)
+                    String(bytes, StandardCharsets.UTF_8)
+                }
 
-            val driveData = Json.decodeFromString(AiPaasDataPackage.serializer(), driveDataJson)
-            faceDriver.startDrive(driveData.speech_rep_info.anim_rep.alg_info.anim_coef_list)
+                val driveData = Json.decodeFromString(AiPaasDataPackage.serializer(), driveDataJson)
+
+                withContext(Dispatchers.Main) {
+                    val audioBase64 = driveData.speech_rep_info.speech_rsp.audio
+                    val audio = android.util.Base64.decode(audioBase64, android.util.Base64.DEFAULT)
+                    val audioData = audio.copyOfRange(44, audio.size)
+
+                    audioTrack?.stop()
+                    audioTrack = AudioTrack(
+                        AudioManager.STREAM_MUSIC,
+                        driveData.speech_rep_info.speech_rsp.sampling,
+                        AudioFormat.CHANNEL_OUT_MONO,
+                        AudioFormat.ENCODING_PCM_16BIT,
+                        audioData.size,
+                        AudioTrack.MODE_STATIC
+                    )
+
+                    audioTrack?.write(audioData, 0, audioData.size)
+                    audioTrack?.play()
+
+                    faceDriver.startDrive(driveData.speech_rep_info.anim_rep.alg_info.anim_coef_list)
+                }
+            }
         }
 
         surfaceView = findViewById(R.id.main_sv)

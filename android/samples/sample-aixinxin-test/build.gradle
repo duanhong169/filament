@@ -18,18 +18,6 @@ filamentTools {
     iblOutputDir = project.layout.projectDirectory.dir("src/main/assets/envs")
 }
 
-// don't forget to update MainACtivity.kt when/if changing this.
-tasks.register('copyMesh', Copy) {
-    from "../../../third_party/models/BusterDrone"
-    into "src/main/assets/models"
-}
-
-preBuild.dependsOn copyMesh
-
-clean.doFirst {
-    delete "src/main/assets"
-}
-
 android {
     namespace 'com.google.android.filament.aixinxin'
 

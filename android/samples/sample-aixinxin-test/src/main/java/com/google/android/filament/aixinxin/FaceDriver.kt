@@ -29,8 +29,6 @@ class FaceDriver(private val modelViewer: ModelViewer) {
             return
         }
 
-        Log.d("Filament", "Frame index: $frameIndex")
-
         val rm = engine.renderableManager
         for (entity in asset.renderableEntities) {
             val morphNameIndexMap = HashMap<String, Int>()

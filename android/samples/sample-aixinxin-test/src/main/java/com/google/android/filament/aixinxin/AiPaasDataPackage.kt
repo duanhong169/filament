@@ -9,7 +9,7 @@ import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
 @JsonIgnoreUnknownKeys
-data class SpeechRsp(val audio: String)
+data class SpeechRsp(val audio: String, val sampling: Int)
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
